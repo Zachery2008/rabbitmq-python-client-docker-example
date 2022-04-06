@@ -3,6 +3,7 @@ import time
 import pika
 import json
 from constants import *
+from rabbitmq_client import rabbitmq_client
 
 logging.basicConfig(level = logging.INFO)
 
@@ -14,21 +15,16 @@ with open(MESSAGES_FILE_PATH, 'r') as f:
 logging.info('Sleeping for 20 seconds to allow RabbitMQ to come up')
 time.sleep(20)
 
-params = pika.URLParameters(RABBIT_MQ_URL)
-connection = pika.BlockingConnection(params)
+rabbitmq_client = rabbitmq_client(RABBIT_MQ_URL)
 
-# Start a communication channel
-channel = connection.channel()
 # Create TEST_QUEUE
-channel.queue_declare(queue=TEST_QUEUE) 
+rabbitmq_client.create_queue(TEST_QUEUE) 
 
 # Publish messages to TEST_QUEUE
 try: 
   for message in messages_dict:
-    channel.basic_publish(exchange='', routing_key=TEST_QUEUE, body=json.dumps(message))
-    logging.info('Published message: {}'.format(str(message)))
+    rabbitmq_client.publish_message(TEST_QUEUE, message)
 except Exception as e:
   logging.error('Error publishing message: {}'.format(str(e)))
 
-connection.close()
-logging.info('Connection closed')
+rabbitmq_client.close()
